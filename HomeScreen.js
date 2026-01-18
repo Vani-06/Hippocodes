@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Button } from 'react-native';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { collection, query, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -11,7 +11,7 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Get Question (Using the 'simple' query to ensure you see data)
+      // 1. Get Question
       const q = query(collection(db, "questions")); 
       const querySnapshot = await getDocs(q);
 
@@ -43,9 +43,14 @@ export default function HomeScreen({ navigation }) {
       {/* Header */}
       <View style={styles.headerRow}>
         <Text style={styles.header}>Hippo Quest</Text>
-        <View style={styles.streakBadge}>
+        
+        {/* ✅ CHANGED: Now a button that goes to Profile */}
+        <TouchableOpacity 
+          style={styles.streakBadge}
+          onPress={() => navigation.navigate('Profile')}
+        >
           <Text style={styles.streakText}>🔥 {streak}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
       
       {question ? (
