@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from './firebaseConfig';
 
@@ -8,16 +8,19 @@ export default function QuestionScreen({ route }) {
   const [answer, setAnswer] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [userAnswer, setUserAnswer] = useState('');
-
-  const userId = auth.currentUser.uid;
+  
+  // Get current user ID
+  const userId = auth.currentUser?.uid;
 
   useEffect(() => {
     checkSubmission();
   }, []);
 
   const checkSubmission = async () => {
+    if (!userId) return;
     const docRef = doc(db, "users", userId, "submissions", question.id);
     const docSnap = await getDoc(docRef);
+    
     if (docSnap.exists()) {
       setSubmitted(true);
       setUserAnswer(docSnap.data().answer);
@@ -27,11 +30,26 @@ export default function QuestionScreen({ route }) {
   const handleSubmit = async () => {
     if (!answer.trim()) return;
     
+    // 1. Save the Answer
     await setDoc(doc(db, "users", userId, "submissions", question.id), {
       answer: answer,
       timestamp: serverTimestamp()
     });
 
+    // 2. Update Streak
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+    
+    let currentStreak = 0;
+    if (userSnap.exists() && userSnap.data().streak) {
+      currentStreak = userSnap.data().streak;
+    }
+
+    await setDoc(userRef, { 
+      streak: currentStreak + 1
+    }, { merge: true });
+
+    // 3. Update UI
     setSubmitted(true);
     setUserAnswer(answer);
   };
@@ -72,11 +90,11 @@ export default function QuestionScreen({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
   title: { fontSize: 24, fontWeight: 'bold', marginBottom: 10 },
-  body: { fontSize: 16, lineHeight: 24 },
-  divider: { height: 1, backgroundColor: '#ccc', marginVertical: 20 },
-  label: { fontWeight: 'bold', marginBottom: 5 },
-  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 5, marginBottom: 10, height: 100, textAlignVertical: 'top' },
-  codeBlock: { fontFamily: 'monospace', backgroundColor: '#f5f5f5', padding: 10, borderRadius: 5 }
+  body: { fontSize: 16, lineHeight: 24, color: '#333' },
+  divider: { height: 1, backgroundColor: '#eee', marginVertical: 20 },
+  label: { fontWeight: 'bold', marginBottom: 5, fontSize: 16 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 10, borderRadius: 8, marginBottom: 15, height: 120, textAlignVertical: 'top', fontSize: 16 },
+  codeBlock: { fontFamily: 'monospace', backgroundColor: '#f5f5f5', padding: 15, borderRadius: 8, fontSize: 14 }
 });
